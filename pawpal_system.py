@@ -1,8 +1,11 @@
 """PawPal+ backend: owners, pets, care tasks, and the scheduler that organizes them."""
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
+
+PRIORITIES = ("low", "medium", "high")
+FREQUENCIES = ("once", "daily", "weekly")
 
 
 @dataclass
@@ -16,6 +19,20 @@ class Task:
     priority: str = "medium"  # "low", "medium", or "high"
     frequency: str = "once"  # "once", "daily", or "weekly"
     completed: bool = False
+
+    def __post_init__(self) -> None:
+        """Reject bad times, priorities, and frequencies as soon as a task is created."""
+        try:
+            datetime.strptime(self.time, "%H:%M")
+            valid_time = len(self.time) == 5  # strptime alone would accept "8:00"
+        except ValueError:
+            valid_time = False
+        if not valid_time:
+            raise ValueError(f"time must be 24-hour HH:MM like '08:00', got {self.time!r}")
+        if self.priority not in PRIORITIES:
+            raise ValueError(f"priority must be one of {PRIORITIES}, got {self.priority!r}")
+        if self.frequency not in FREQUENCIES:
+            raise ValueError(f"frequency must be one of {FREQUENCIES}, got {self.frequency!r}")
 
     def mark_complete(self) -> None:
         """Mark this task as done."""
@@ -47,7 +64,7 @@ class Owner:
     pets: list[Pet] = field(default_factory=list)
 
     def add_pet(self, pet: Pet) -> None:
-        """Add a pet to this owner."""
+        """Add a pet to this owner; raises ValueError if a pet with that name already exists."""
         pass
 
     def get_all_tasks(self) -> list[tuple[Pet, Task]]:

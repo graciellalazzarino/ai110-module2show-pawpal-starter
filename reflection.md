@@ -13,10 +13,27 @@
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
 
+My initial UML (`diagrams/uml_draft.mmd`) has four classes. An `Owner` has zero or more `Pet`s, each `Pet` has zero or more `Task`s, and a `Scheduler` holds a reference to one `Owner` and reaches every pet and task through it instead of keeping its own copy.
+
+- `Task`: one care activity, storing its description, due date, 24-hour `HH:MM` time, duration, priority, frequency (once/daily/weekly), and whether it is completed. It can mark itself complete and build its next occurrence.
+- `Pet`: a pet's name and species plus its own list of tasks; it can add a task.
+- `Owner`: the owner's name and list of pets; it can add a pet and collect every (pet, task) pair across all pets.
+- `Scheduler`: gets today's tasks, sorts them by time, filters by pet and/or completion status, completes tasks (adding the next occurrence for recurring ones), and finds tasks scheduled at the same date and time.
+
+I gave tasks a date as well as a time because recurrence and "today's plan" need to tell days apart. Completion goes through the `Scheduler` because a `Task` does not know which pet it belongs to, so it cannot add its own next occurrence to that pet's list.
+
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
+
+Yes. After reviewing the skeleton, I added three rules:
+
+- `Task` now rejects a time that is not zero-padded 24-hour `HH:MM` (for example `"8:00"` or `"2:30 PM"`). Times are compared as strings, so `"8:00"` would sort after `"10:00"`.
+- `Task` only accepts the priorities low/medium/high and the frequencies once/daily/weekly, so a typo such as `"Daily"` cannot silently break recurrence.
+- `Owner.add_pet()` will refuse a second pet with the same name, so filtering by pet name always means one pet.
+
+I rejected two suggestions: returning structured conflict objects instead of warning strings, because strings already identify the pets, tasks, and time; and caching `get_all_tasks()`, because with a few pets it is already instant and a cache could go out of date when a task is added.
 
 ---
 
