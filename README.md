@@ -1,26 +1,18 @@
-# PawPal+ (Module 2 Project)
+# PawPal+
 
-You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
+PawPal+ is a pet care planner for busy owners. You add your pets, schedule care tasks such as walks, feeding, medication, and vet visits, and PawPal+ shows today's plan in time order, warns you when two tasks are booked at the same time, and automatically schedules the next occurrence of daily and weekly tasks when you mark them done.
 
-## Scenario
+It has a Python backend (`pawpal_system.py`), a terminal demo (`main.py`), a Streamlit web app (`app.py`), and an automated test suite (`tests/test_pawpal.py`).
 
-A busy pet owner needs help staying consistent with pet care. They want an assistant that can:
+## Features
 
-- Track pet care tasks (walks, feeding, meds, enrichment, grooming, etc.)
-- Consider constraints (time available, priority, owner preferences)
-- Produce a daily plan and explain why it chose that plan
-
-Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
-
-## What you will build
-
-Your final app should:
-
-- Let a user enter basic owner + pet info
-- Let a user add/edit tasks (duration + priority at minimum)
-- Generate a daily schedule/plan based on constraints and priorities
-- Display the plan clearly (and ideally explain the reasoning)
-- Include tests for the most important scheduling behaviors
+- **Pets and owner:** one owner with any number of pets; duplicate pet names are rejected.
+- **Care tasks:** description, date, 24-hour time, duration, priority (low/medium/high), and frequency (once/daily/weekly). Invalid times, priorities, or frequencies are rejected.
+- **Today's schedule:** today's tasks across all pets, sorted by time.
+- **Filtering:** view tasks by pet, by completion status, or both.
+- **Recurring tasks:** marking a daily or weekly task done keeps it as history and adds the next occurrence to the same pet.
+- **Conflict warnings:** flags incomplete tasks that share the same date and time, for the same or different pets.
+- **Priority and duration** are stored and displayed, but they do not change the order of the schedule.
 
 ## Getting started
 
@@ -28,23 +20,39 @@ Your final app should:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+.venv\Scripts\activate        # macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
-### Suggested workflow
+Tested with Python 3.13, Streamlit 1.60, and pytest 9.1.
 
-1. Read the scenario carefully and identify requirements and edge cases.
-2. Draft a UML diagram (classes, attributes, methods, relationships).
-3. Convert UML into Python class stubs (no logic yet).
-4. Implement scheduling logic in small increments.
-5. Add tests to verify key behaviors.
-6. Connect your logic to the Streamlit UI in `app.py`.
-7. Refine UML so it matches what you actually built.
+### Run it
+
+Run these from the project folder:
+
+```bash
+python main.py                    # terminal demo
+python -m streamlit run app.py    # web app (opens in your browser)
+python -m pytest                  # automated tests
+```
+
+## Architecture
+
+All logic lives in `pawpal_system.py`, in four classes:
+
+- `Task`: one care activity; validates its fields and can build its next occurrence.
+- `Pet`: a pet and its own list of tasks.
+- `Owner`: an owner's pets; collects every (pet, task) pair.
+- `Scheduler`: works through the owner to sort, filter, complete, and check conflicts. It never keeps its own copy of the tasks, so it always sees current data.
+
+`app.py` and `main.py` only call these methods; neither sorts, filters, or checks conflicts on its own.
+
+- Final UML: [`diagrams/uml.mmd`](diagrams/uml.mmd)
+- Original draft UML: [`diagrams/uml_draft.mmd`](diagrams/uml_draft.mmd)
 
 ## 🖥️ Sample Output
 
-Output of `python main.py` (tasks are added out of order and sorted by the scheduler; the date is whichever day you run it):
+Output of `python main.py`. Tasks are added out of order, then the demo shows sorting, filtering, recurrence, and a deliberate conflict. Dates depend on the day you run it.
 
 ```
 Today's Schedule for Jordan (Sunday, November 01, 2026)
@@ -53,6 +61,32 @@ Today's Schedule for Jordan (Sunday, November 01, 2026)
   08:00  Mochi  Morning walk     (30 min, high)     [ ]
   14:00  Luna   Vet checkup      (60 min, high)     [ ]
   18:30  Mochi  Evening walk     (30 min, medium)   [ ]
+
+Filter: Mochi's tasks
+---------------------
+  08:00  Mochi  Morning walk     (30 min, high)     [ ]
+  18:30  Mochi  Evening walk     (30 min, medium)   [ ]
+
+Completed 'Morning walk'; next occurrence due Mon Nov 02 at 08:00.
+Completing it a second time created: None (no duplicate).
+
+Mochi's tasks after completion
+------------------------------
+  Sun Nov 01  08:00  Mochi  Morning walk     (30 min, high)     [x]
+  Sun Nov 01  18:30  Mochi  Evening walk     (30 min, medium)   [ ]
+  Mon Nov 02  08:00  Mochi  Morning walk     (30 min, high)     [ ]
+
+Filter: incomplete tasks only
+-----------------------------
+  Sun Nov 01  07:30  Luna   Breakfast        (10 min, high)     [ ]
+  Sun Nov 01  14:00  Luna   Vet checkup      (60 min, high)     [ ]
+  Sun Nov 01  18:30  Mochi  Evening walk     (30 min, medium)   [ ]
+  Mon Nov 02  08:00  Mochi  Morning walk     (30 min, high)     [ ]
+
+Conflict check
+--------------
+  WARNING: Conflict on 2026-11-01 at 07:30: Luna - Breakfast, Luna - Medication
+  (Grooming tomorrow at 18:30 is not flagged: same time as the evening walk, different day.)
 ```
 
 ## 🧪 Testing PawPal+
@@ -111,12 +145,22 @@ All scheduling logic lives in `pawpal_system.py`; `main.py` demonstrates each fe
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+Start the app with `python -m streamlit run app.py`, then:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. **Set the owner.** Type a name in **Owner name**. The owner (and everything added below) stays in place as you use the page.
+2. **Add pets.** In **Add a Pet**, enter a name and species and click **Add pet**, for example Mochi (dog) and Luna (cat). Adding a second pet with the same name shows an error instead of a duplicate.
+3. **Schedule tasks.** In **Schedule a Task**, pick a pet and enter the task, date, 24-hour time, duration, priority, and how often it repeats. For example: Mochi, "Morning walk", today, 08:00, daily; and Luna, "Breakfast", today, 08:00, once.
+4. **Read today's schedule.** **Today's Schedule** lists today's tasks in time order, whatever order they were added in. Because both tasks above are at 08:00 today, a ⚠️ warning names the date, the time, and both pets and tasks.
+5. **Mark a recurring task done.** Click **Done** next to Mochi's Morning walk. A message confirms it and says the next walk is due tomorrow at 08:00. The walk shows ✅, and the conflict warning disappears because completed tasks don't count. Tomorrow's walk does not appear in Today's Schedule.
+6. **Filter all tasks.** In **All Tasks**, choose a pet and/or a status (All, Incomplete, Completed). With Pet = Mochi you see today's completed walk and tomorrow's new walk; with Status = Incomplete only tasks still to do appear. If nothing matches, the app says so.
+
+The same features are shown in the terminal in the **Sample Output** section above.
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+
+## Limitations
+
+- **Session-only data:** pets and tasks live in Streamlit's session state. Refreshing the page or restarting the app clears them; there is no file or database.
+- **One owner per session**, and tasks cannot be edited or deleted after they are added.
+- **Exact-time conflicts only:** a 60-minute task at 14:00 and another at 14:30 are not flagged.
+- **No smart planning:** the schedule is ordered by time only. Priority, duration, and the owner's available time do not change the plan, and the app does not explain its choices.

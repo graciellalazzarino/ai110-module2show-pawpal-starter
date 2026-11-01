@@ -1,15 +1,46 @@
 classDiagram
-    %% Replace the placeholders below with your actual classes, attributes, methods, and relationships.
-    %% Keep this file updated so it matches your final implementation.
+    %% Final design: matches pawpal_system.py. The original draft is in diagrams/uml_draft.mmd.
 
-    class ClassName {
-        +type attribute
-        +method() returnType
+    class Owner {
+        +str name
+        +list~Pet~ pets
+        +add_pet(pet: Pet) None
+        +get_all_tasks() list~tuple~
     }
 
-    class AnotherClass {
-        +type attribute
-        +method() returnType
+    class Pet {
+        +str name
+        +str species
+        +list~Task~ tasks
+        +add_task(task: Task) None
     }
 
-    ClassName --> AnotherClass : relationship
+    class Task {
+        +str description
+        +date due_date
+        +str time
+        +int duration_minutes
+        +str priority = "medium"
+        +str frequency = "once"
+        +bool completed = False
+        +mark_complete() None
+        +next_occurrence() Optional~Task~
+    }
+
+    class Scheduler {
+        +Owner owner
+        +todays_tasks() list~tuple~
+        +sort_by_time(pairs: list~tuple~) list~tuple~
+        +filter_tasks(pet_name: str = None, completed: bool = None) list~tuple~
+        +complete_task(pet: Pet, task: Task) Optional~Task~
+        +find_conflicts() list~str~
+    }
+
+    Owner "1" *-- "0..*" Pet : has
+    Pet "1" *-- "0..*" Task : has
+    Scheduler "1" --> "1" Owner : reads pets and tasks through
+    Scheduler ..> Task : completes, creates next occurrence
+
+    note for Task "time: zero-padded 24-hour HH:MM<br>priority: low | medium | high<br>frequency: once | daily | weekly<br>anything else is rejected when the Task is created"
+    note for Owner "add_pet raises ValueError for a duplicate pet name (case-insensitive)"
+    note for Scheduler "next due date = max(due_date, today) + 1 day (daily) or 7 days (weekly)<br>conflicts: same date and time, incomplete tasks only"
