@@ -69,44 +69,65 @@ else:
 
 st.divider()
 
-st.subheader("Pets and Their Tasks")
+st.subheader(f"Today's Schedule ({date.today():%A, %B %d})")
+
+# A Done click reruns the script after the table above it was drawn, so the result
+# message is saved here and shown after st.rerun() redraws everything.
+if "flash" in st.session_state:
+    st.success(st.session_state.pop("flash"))
+
+conflicts = scheduler.find_conflicts()
+for warning in conflicts:
+    st.warning(f"⚠️ {warning}")
+if not conflicts:
+    st.success("No scheduling conflicts.")
+
+todays = scheduler.sort_by_time(scheduler.todays_tasks())
+if not todays:
+    st.info("Nothing scheduled for today.")
+for pet, task in todays:
+    info, action = st.columns([5, 1])
+    status = "✅ done" if task.completed else f"{task.priority} priority"
+    info.markdown(
+        f"**{task.time}** · {pet.name} · {task.description} "
+        f"({task.duration_minutes} min, {status})"
+    )
+    if not task.completed and action.button("Done", key=f"done-{id(task)}"):
+        next_task = scheduler.complete_task(pet, task)
+        message = f"{task.description} for {pet.name} is done."
+        if next_task is not None:
+            message += f" Next one is due {next_task.due_date:%a %b %d} at {next_task.time}."
+        st.session_state.flash = message
+        st.rerun()
+
+st.subheader("All Tasks")
 if not owner.pets:
     st.info("No pets yet.")
-for pet in owner.pets:
-    st.markdown(f"**{pet.name}** ({pet.species})")
-    if pet.tasks:
+else:
+    col1, col2 = st.columns(2)
+    with col1:
+        pet_choice = st.selectbox("Pet", ["All pets"] + [pet.name for pet in owner.pets], key="filter_pet")
+    with col2:
+        status_choice = st.radio("Status", ["All", "Incomplete", "Completed"], horizontal=True)
+    completed_filter = {"All": None, "Incomplete": False, "Completed": True}[status_choice]
+    pet_filter = None if pet_choice == "All pets" else pet_choice
+
+    matches = scheduler.sort_by_time(scheduler.filter_tasks(pet_name=pet_filter, completed=completed_filter))
+    if matches:
         st.table(
             [
                 {
                     "Date": task.due_date.isoformat(),
                     "Time": task.time,
+                    "Pet": pet.name,
                     "Task": task.description,
                     "Minutes": task.duration_minutes,
                     "Priority": task.priority,
                     "Repeats": task.frequency,
                     "Done": "yes" if task.completed else "no",
                 }
-                for task in pet.tasks
+                for pet, task in matches
             ]
         )
     else:
-        st.caption("No tasks yet.")
-
-st.subheader(f"Today's Schedule ({date.today():%A, %B %d})")
-todays = scheduler.sort_by_time(scheduler.todays_tasks())
-if todays:
-    st.table(
-        [
-            {
-                "Time": task.time,
-                "Pet": pet.name,
-                "Task": task.description,
-                "Minutes": task.duration_minutes,
-                "Priority": task.priority,
-                "Done": "yes" if task.completed else "no",
-            }
-            for pet, task in todays
-        ]
-    )
-else:
-    st.info("Nothing scheduled for today.")
+        st.info("No tasks match these filters.")
