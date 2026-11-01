@@ -1,11 +1,12 @@
 """PawPal+ backend: owners, pets, care tasks, and the scheduler that organizes them."""
 
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 PRIORITIES = ("low", "medium", "high")
 FREQUENCIES = ("once", "daily", "weekly")
+REPEAT_DAYS = {"daily": 1, "weekly": 7}
 
 
 @dataclass
@@ -40,7 +41,19 @@ class Task:
 
     def next_occurrence(self) -> Optional["Task"]:
         """Return a new Task for the next daily/weekly occurrence, or None for one-time tasks."""
-        pass
+        if self.frequency not in REPEAT_DAYS:
+            return None
+        # Count from today if the task is overdue, or from its due date if it was done early,
+        # so completing early never puts a second copy on the same day.
+        start = max(self.due_date, date.today())
+        return Task(
+            self.description,
+            start + timedelta(days=REPEAT_DAYS[self.frequency]),
+            self.time,
+            self.duration_minutes,
+            self.priority,
+            self.frequency,
+        )
 
 
 @dataclass
@@ -96,12 +109,32 @@ class Scheduler:
         self, pet_name: Optional[str] = None, completed: Optional[bool] = None
     ) -> list[tuple[Pet, Task]]:
         """Return pairs matching the pet name and/or completion status; None means no filter."""
-        pass
+        pairs = self.owner.get_all_tasks()
+        if pet_name is not None:
+            pairs = [(pet, task) for pet, task in pairs if pet.name.lower() == pet_name.lower()]
+        if completed is not None:
+            pairs = [(pet, task) for pet, task in pairs if task.completed == completed]
+        return pairs
 
     def complete_task(self, pet: Pet, task: Task) -> Optional[Task]:
         """Mark a task complete and add its next occurrence to the pet, if it recurs."""
-        pass
+        if task.completed:
+            return None  # already done: don't create a duplicate future task
+        task.mark_complete()
+        next_task = task.next_occurrence()
+        if next_task is not None:
+            pet.add_task(next_task)
+        return next_task
 
     def find_conflicts(self) -> list[str]:
-        """Return warning messages for tasks scheduled at the same date and time."""
-        pass
+        """Return warning messages for incomplete tasks scheduled at the same date and time."""
+        slots: dict[tuple[date, str], list[tuple[Pet, Task]]] = {}
+        for pet, task in self.filter_tasks(completed=False):
+            slots.setdefault((task.due_date, task.time), []).append((pet, task))
+
+        warnings = []
+        for (due_date, time), pairs in sorted(slots.items()):
+            if len(pairs) > 1:
+                names = ", ".join(f"{pet.name} - {task.description}" for pet, task in pairs)
+                warnings.append(f"Conflict on {due_date.isoformat()} at {time}: {names}")
+        return warnings
