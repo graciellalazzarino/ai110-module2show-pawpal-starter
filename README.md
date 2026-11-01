@@ -57,19 +57,46 @@ Today's Schedule for Jordan (Sunday, November 01, 2026)
 
 ## 🧪 Testing PawPal+
 
+Run the full test suite from the project folder:
+
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+python -m pytest
 ```
 
-Sample test output:
+`tests/test_pawpal.py` contains 14 tests covering:
+
+- **Basics:** marking a task complete; adding a task increases a pet's task count.
+- **Sorting:** out-of-order tasks come back chronologically; an earlier date sorts before a later one regardless of time.
+- **Recurrence:** daily tasks repeat the next day and weekly tasks seven days later; a task completed early repeats after its due date; one-time tasks don't repeat; completing a task twice doesn't create a duplicate.
+- **Conflicts:** two pets at the same date and time are flagged; the same time on different days is not; completed tasks are ignored.
+- **Filtering and empty cases:** filtering by pet and/or completion status; an owner with no pets returns empty results without errors.
+
+Recurrence tests build dates relative to `date.today()`, so they pass on any day.
+
+Sample test output (`python -m pytest -v`):
 
 ```
-# Paste your pytest output here
+collected 14 items
+
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [  7%]
+tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 14%]
+tests/test_pawpal.py::test_sort_by_time_returns_chronological_order PASSED [ 21%]
+tests/test_pawpal.py::test_sort_by_time_puts_earlier_date_first PASSED   [ 28%]
+tests/test_pawpal.py::test_completing_daily_task_creates_next_day_copy PASSED [ 35%]
+tests/test_pawpal.py::test_completing_weekly_task_creates_copy_seven_days_later PASSED [ 42%]
+tests/test_pawpal.py::test_completing_future_task_early_counts_from_due_date PASSED [ 50%]
+tests/test_pawpal.py::test_one_time_task_does_not_repeat PASSED          [ 57%]
+tests/test_pawpal.py::test_completing_twice_does_not_duplicate PASSED    [ 64%]
+tests/test_pawpal.py::test_conflict_between_two_pets_is_flagged PASSED   [ 71%]
+tests/test_pawpal.py::test_same_time_on_different_days_is_not_a_conflict PASSED [ 78%]
+tests/test_pawpal.py::test_completed_tasks_are_ignored_in_conflicts PASSED [ 85%]
+tests/test_pawpal.py::test_filter_by_pet_and_by_status PASSED            [ 92%]
+tests/test_pawpal.py::test_owner_with_no_pets_returns_empty_results PASSED [100%]
+
+============================= 14 passed in 0.04s ==============================
 ```
+
+**Confidence Level:** ★★★★☆ (4/5). All required scheduling behaviors and the main edge cases are tested, and deliberately breaking recurrence, the duplicate guard, or conflict detection makes the matching tests fail. The Streamlit UI is verified manually rather than by automated tests, and conflict detection only matches exact times, not overlapping durations.
 
 ## 📐 Smarter Scheduling
 

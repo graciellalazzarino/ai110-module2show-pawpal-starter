@@ -81,6 +81,10 @@ The tradeoff is that the rule is harder to explain in one sentence, and a pet do
 - How confident are you that your scheduler works correctly?
 - What edge cases would you test next if you had more time?
 
+4 out of 5 stars. All 14 automated tests pass, and when recurrence, the duplicate-completion guard, and conflict detection were deliberately broken, the matching tests failed. The Streamlit UI was only checked by hand, and conflicts only match exact times.
+
+Next I would test: tasks whose durations overlap without sharing a start time (currently not flagged by design), recurrence across month and year boundaries with fixed dates, invalid input through the UI forms, and completing a task from the Streamlit UI once that button exists.
+
 ---
 
 ## 5. Reflection
