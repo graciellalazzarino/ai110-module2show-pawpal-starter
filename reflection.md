@@ -2,6 +2,12 @@
 
 ## 1. System Design
 
+**Core user actions**
+
+1. Schedule a care task: add a task such as a walk or medication to a pet, with its date, time, duration, priority, and how often it repeats.
+2. View today's plan: see today's tasks across all pets, sorted by time, with any time conflicts flagged.
+3. Mark a task complete: check off a task; daily or weekly tasks automatically get their next occurrence.
+
 **a. Initial design**
 
 - Briefly describe your initial UML design.
