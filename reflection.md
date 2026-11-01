@@ -44,6 +44,10 @@ I rejected two suggestions: returning structured conflict objects instead of war
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
 - How did you decide which constraints mattered most?
 
+The scheduler considers each task's date and time, whether it is completed, and which pet it belongs to. Today's plan only includes tasks due today, sorted by time; completed tasks stay visible as history but no longer count toward conflicts; and recurring tasks are scheduled forward from the later of their due date and today. Each task also stores a priority and a duration, but they are only displayed and do not change the order of the plan.
+
+I put date and time first because the core user actions (scheduling a task, viewing today's plan, and marking tasks complete) all depend on knowing exactly when a task happens. Priority-based ordering and fitting tasks into the owner's available time were left out to keep the scheduler small and easy to verify.
+
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
@@ -62,10 +66,16 @@ The tradeoff is that the rule is harder to explain in one sentence, and a pet do
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
 - What kinds of prompts or questions were most helpful?
 
+I used one AI coding assistant (Claude Code) for the whole project, working in small batches: it proposed a plan, I approved or changed it, it made the change and showed the results, and I reviewed before each commit. The most useful help was explaining concepts as they came up (dataclasses, `field(default_factory=list)`, `sorted()` with a key, `timedelta`, and Streamlit's `session_state`), the step-by-step review process, and debugging. For example, when the app crashed with `'NoneType' object is not iterable`, the cause turned out to be an old Streamlit server still running code from before `find_conflicts()` was implemented, not a bug in the code. The assignment suggests separate chats for algorithm planning and testing; I did not use separate chats and kept everything in one session.
+
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
 - How did you evaluate or verify what the AI suggested?
+
+When reviewing the class skeleton, the AI suggested five changes. I accepted three (time format checks, allowed priority/frequency values, and no duplicate pet names) and rejected two: caching `get_all_tasks()`, because with a few pets it is already fast and a cache could go out of date, and returning structured conflict objects, because plain warning messages already name the pets, tasks, and time. For recurrence, I also chose the "later of due date and today" rule instead of using the assignment's plain "today + 1" as-is.
+
+I verified the AI's work by running `python main.py` and `python -m pytest` myself, walking through the Streamlit app by hand, and reviewing the changes before each commit. That mattered: the AI made real mistakes during the project, such as a demo script that crashed with an `IndexError` and an edit that broke the UML file, and those were only caught because the code was actually run and checked.
 
 ---
 
@@ -76,6 +86,10 @@ The tradeoff is that the rule is harder to explain in one sentence, and a pet do
 - What behaviors did you test?
 - Why were these tests important?
 
+The 14 tests in `tests/test_pawpal.py` cover marking tasks complete and adding tasks; sorting by time and by date; daily and weekly recurrence, early completion, one-time tasks, and completing a task twice; conflicts between two pets, the same time on different days, and completed tasks being ignored; filtering by pet and status; and an owner with no pets.
+
+These are the behaviors the schedule depends on. A wrong sort or a missed conflict would give the owner a misleading plan, and recurrence bugs are easy to miss by hand because they only show up on later days. The edge cases (duplicates, empty data, same time on different days) are where simple code most often goes wrong.
+
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
@@ -83,7 +97,7 @@ The tradeoff is that the rule is harder to explain in one sentence, and a pet do
 
 4 out of 5 stars. All 14 automated tests pass, and when recurrence, the duplicate-completion guard, and conflict detection were deliberately broken, the matching tests failed. The Streamlit UI was only checked by hand, and conflicts only match exact times.
 
-Next I would test: tasks whose durations overlap without sharing a start time (currently not flagged by design), recurrence across month and year boundaries with fixed dates, invalid input through the UI forms, and completing a task from the Streamlit UI once that button exists.
+Next I would test: tasks whose durations overlap without sharing a start time (currently not flagged by design), recurrence across month and year boundaries with fixed dates, invalid input through the UI forms, and automated tests for the Streamlit UI, such as clicking Done on a recurring task.
 
 ---
 
@@ -93,10 +107,16 @@ Next I would test: tasks whose durations overlap without sharing a start time (c
 
 - What part of this project are you most satisfied with?
 
+The UI interaction. In the Streamlit app you can add pets and tasks, see today's schedule sorted with conflict warnings, click Done on a recurring task and immediately see the next one scheduled for the following day, and filter all tasks by pet and status, all using the same backend methods as the terminal demo.
+
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
 
+I would detect overlapping tasks, not just tasks with the exact same start time. Right now a 60-minute task at 14:00 and another at 14:30 are not flagged, even though they overlap. I would also look at efficiency, for example how the scheduler rebuilds the full task list on every call, which is fine for a few pets but would not scale well.
+
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+Verify, don't trust. The AI's code and explanations were usually right, but not always: it wrote a demo that crashed, and one of its edits broke a file. Running the code, reading the output, and testing the app myself is what caught those problems, so I can't treat AI output as finished until I've checked it.
