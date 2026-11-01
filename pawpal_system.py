@@ -36,7 +36,7 @@ class Task:
 
     def mark_complete(self) -> None:
         """Mark this task as done."""
-        pass
+        self.completed = True
 
     def next_occurrence(self) -> Optional["Task"]:
         """Return a new Task for the next daily/weekly occurrence, or None for one-time tasks."""
@@ -53,7 +53,7 @@ class Pet:
 
     def add_task(self, task: Task) -> None:
         """Add a care task to this pet."""
-        pass
+        self.tasks.append(task)
 
 
 @dataclass
@@ -65,11 +65,14 @@ class Owner:
 
     def add_pet(self, pet: Pet) -> None:
         """Add a pet to this owner; raises ValueError if a pet with that name already exists."""
-        pass
+        for existing in self.pets:
+            if existing.name.lower() == pet.name.lower():
+                raise ValueError(f"{self.name} already has a pet named {existing.name!r}")
+        self.pets.append(pet)
 
     def get_all_tasks(self) -> list[tuple[Pet, Task]]:
         """Return every (pet, task) pair across all of this owner's pets."""
-        pass
+        return [(pet, task) for pet in self.pets for task in pet.tasks]
 
 
 class Scheduler:
@@ -81,11 +84,13 @@ class Scheduler:
 
     def todays_tasks(self) -> list[tuple[Pet, Task]]:
         """Return (pet, task) pairs due today."""
-        pass
+        today = date.today()
+        return [(pet, task) for pet, task in self.owner.get_all_tasks() if task.due_date == today]
 
     def sort_by_time(self, pairs: list[tuple[Pet, Task]]) -> list[tuple[Pet, Task]]:
         """Return the pairs in chronological order."""
-        pass
+        # Zero-padded "HH:MM" strings sort the same way as the times they represent.
+        return sorted(pairs, key=lambda pair: (pair[1].due_date, pair[1].time))
 
     def filter_tasks(
         self, pet_name: Optional[str] = None, completed: Optional[bool] = None
