@@ -1,5 +1,6 @@
 """PawPal+ backend: owners, pets, care tasks, and the scheduler that organizes them."""
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Optional
@@ -128,9 +129,10 @@ class Scheduler:
 
     def find_conflicts(self) -> list[str]:
         """Return warning messages for incomplete tasks scheduled at the same date and time."""
-        slots: dict[tuple[date, str], list[tuple[Pet, Task]]] = {}
+        # Group tasks by (date, time); a defaultdict starts each new slot as an empty list.
+        slots: dict[tuple[date, str], list[tuple[Pet, Task]]] = defaultdict(list)
         for pet, task in self.filter_tasks(completed=False):
-            slots.setdefault((task.due_date, task.time), []).append((pet, task))
+            slots[(task.due_date, task.time)].append((pet, task))
 
         warnings = []
         for (due_date, time), pairs in sorted(slots.items()):

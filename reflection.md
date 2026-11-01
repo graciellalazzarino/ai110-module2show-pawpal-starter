@@ -49,6 +49,10 @@ I rejected two suggestions: returning structured conflict objects instead of war
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
 
+When a daily or weekly task is completed, the next occurrence is due on the later of the task's due date and today, plus 1 or 7 days. The assignment's example uses "today + 1 day," and I considered "due date + 1 day" as well. Each simple rule has a problem: with "today + 1," completing tomorrow's walk early today creates a second walk on the same day as the original; with "due date + 1," finishing an overdue task creates a next task that is already overdue. Taking the later of the two dates gives the same result as "today + 1" whenever a task is completed on time or late, and avoids the duplicate when it is completed early.
+
+The tradeoff is that the rule is harder to explain in one sentence, and a pet does not keep a fixed rhythm (for example, every Monday) after a weekly task is done late; the schedule shifts to count from the day it was actually done. That is reasonable here because a busy owner mainly needs the next reminder to land on a sensible future day and never be duplicated, not to keep a strict calendar pattern.
+
 ---
 
 ## 3. AI Collaboration
